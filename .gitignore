@@ -1,0 +1,12 @@
+# compiled output
+node_modules
+dist
+
+# dotenv environment variable files
+.env
+.env.production
+
+Dockerfile
+docker-compose.yml
+.dockerignore
+.DS_Store
