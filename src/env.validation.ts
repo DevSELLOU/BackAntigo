@@ -3,6 +3,8 @@ import {
   IsEnum,
   IsNumber,
   IsString,
+  IsOptional,
+  IsIn,
   Max,
   Min,
   validateSync,
@@ -16,6 +18,22 @@ enum Environment {
 }
 
 export class EnvironmentVariables {
+  @IsOptional()
+  @IsString()
+  APP_ENV?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  DB_TLS?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  DB_TLS_REJECT_UNAUTHORIZED?: string;
+
+  @IsOptional()
+  @IsString()
+  DB_TLS_CA?: string;
+
   @IsEnum(Environment)
   NODE_ENV: Environment;
 

@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { databaseTlsOptions } from './src/utils/database-tls';
 import { Sequelize } from 'sequelize-typescript';
 import { EnvironmentVariables } from 'src/env.validation';
 import { AccessRequest } from 'src/presentation/access-requests/access-request.entity';
@@ -126,14 +127,15 @@ export const databaseProviders = [
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        ssl: false,
         logging: false,
-        // dialectOptions: {
-        //   ssl: {
-        //     require: true,
-        //     rejectUnauthorized: false,
-        //   },
-        // },
+        dialectOptions: databaseTlsOptions({
+          APP_ENV: configService.get('APP_ENV'),
+          DB_DATABASE: configService.get('DB_DATABASE'),
+          DB_USERNAME: configService.get('DB_USERNAME'),
+          DB_TLS: configService.get('DB_TLS'),
+          DB_TLS_REJECT_UNAUTHORIZED: configService.get('DB_TLS_REJECT_UNAUTHORIZED'),
+          DB_TLS_CA: configService.get('DB_TLS_CA'),
+        }),
       });
       sequelize.addModels([
         User,
