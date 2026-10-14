@@ -117,18 +117,13 @@ Depois que o painel mostrar a URL real do frontend, confirmar `NEXTAUTH_URL` e a
 
 ## 5. Seed fictício
 
-O startup do backend aguarda HTTP `/api-json` e, se `SEED_HOMOLOGACAO=true`, executa o seed após o schema estar pronto. Essa opção funciona sem Shell de plano pago. Consulte os logs até aparecer o resumo JSON com IDs e `created`.
+O seed completo está documentado em [SEED-HOMOLOGACAO.md](SEED-HOMOLOGACAO.md), incluindo os seis usuários, senha definida por segredo, contagens por tabela e proteções contra produção. Amplia o seed anterior para 20 clientes, 30 produtos, 109 pedidos e 100 metas, mantendo relacionamentos e papéis reais.
 
-- Empresa: `Sellou Homologacao Ficticia`, CNPJ fictício `00000000000000`.
-- Administrador: `admin@sellou-homologacao.example`.
-- Senha: **aquela definida em `HOMOLOG_ADMIN_PASSWORD` no painel**. Exemplo apenas fictício: `SellouHomolog!2026`; prefira uma senha de teste própria, pois a URL é pública.
-- Apoio: vínculo `UserCompanies` ativo com papel `ADMINISTRATOR`; categoria/subcategoria, segmento/subsegmento, condição/meio de pagamento, prazo 0–30 dias, cliente/vínculos, produto/estoque, tabela de preços e orçamento com item/responsável.
+O startup aguarda `/api-json` e executa `npm run seed:homologacao` quando `SEED_HOMOLOGACAO=true`. Confira o resumo JSON nos logs e depois retorne essa opção para `false`. A segunda execução sem mudanças deve informar zero registros criados e atualizados em todas as tabelas. `HOMOLOG_ADMIN_PASSWORD` é a senha fictícia dos seis usuários; deve permanecer igual ao repetir o seed. Não é redefinida nem exibida nos logs.
 
-Login funcional exige `Companies`, `Users` e `UserCompanies` ativos e vinculados. O papel administrador permite a navegação básica. Os demais relacionamentos acima permitem dashboard, clientes, produtos, pedidos e configurações sem integrações reais.
+O host autorizado corresponde ao recurso de homologação `dpg-db4ko6vavr4c73fkjdag-a`. O hostname externo deve ser copiado do painel Render e exige certificado TLS validado. Não usar o host interno fora da rede privada do Render. O script recusa qualquer recurso, banco ou usuário diferente.
 
-O seed usa transação, trava e identidades estáveis. Repetir sem mudar os dados é idempotente; não redefine senhas nem sobrescreve registros divergentes. Recusa identidade de banco/usuário inesperada ou empresa alheia ao seed. Não envia email nem cria uploads.
-
-Após sucesso, definir `SEED_HOMOLOGACAO=false`, remover `HOMOLOG_ADMIN_PASSWORD` das variáveis se não for mais executar o seed e redeployar. Guardar a senha fictícia para login. Quando Shell estiver disponível, alternativa: `npm run seed:homologacao`, com as mesmas variáveis; não contratar plano pago só para isso.
+Após popular a homologação, `npm run validate:homologacao` verifica os seis logins e os endpoints usados pelas telas, incluindo respostas 403 esperadas para acessos administrativos restritos. Complemente essa validação no navegador do frontend de homologação.
 
 ## 6. Validar a implantação pública
 

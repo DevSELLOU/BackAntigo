@@ -471,7 +471,7 @@ export class DashboardTablesService {
       conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : '';
 
     const results = await Order.sequelize.query(
-      `SELECT DISTINCT c.name, c."stateAbbreviation", c."stateName"
+      `SELECT DISTINCT c.name, c."stateAbbreviation", c."stateName", c.latitude, c.longitude
        FROM "Cities" c
        INNER JOIN "Customers" cust ON cust.city = c.name AND cust."UF" = c."stateAbbreviation"
        WHERE cust."companyId" = :companyId
