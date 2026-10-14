@@ -105,3 +105,11 @@ npm run test:seed:homologacao
 `npm run validate:homologacao` autentica os seis usuários exclusivamente em `https://backantigo.onrender.com` e verifica 96 respostas de carteiras, produtos, pedidos, condições/meios de pagamento, prazo, categorias, dashboard/cobertura, metas e relatórios. Confere papel/empresa e exige 403 na administração de usuários para os perfis sem essa permissão. Não registra JWTs nem senhas. Essa verificação de API deve ser complementada por navegador em `https://frontantigo.onrender.com`: login, dashboard, clientes, produtos, pedidos/Novo Pedido, relatórios, configurações do administrador e logout.
 
 **Situação da execução:** implementação e testes locais preparados; a execução no PostgreSQL do Render e a validação pública dependem do hostname externo, segredos e liberações de rede do ambiente. Resultados locais não comprovam execução ou login no Render.
+
+### Resultados locais em 14/10/2026
+
+- Backend compilado; nove testes do seed/integridade e seis testes de TLS aprovados.
+- PostgreSQL 16 temporário com as entidades reais: **1.156 registros em 26 tabelas**. Segunda execução: zero registros criados e zero atualizados. Upgrade v1, transações concorrentes, rollback integral, senha divergente, banco incorreto e metas sobrepostas verificados.
+- API local com TLS no PostgreSQL: seis logins e **96 checks** aprovados, incluindo papéis, vínculos, 403 administrativos esperados e coordenadas de cobertura.
+- Chromium: **55 verificações de telas** aprovadas, sem erros de execução JavaScript. Login/logout dos seis usuários; dashboard, clientes, produtos, pedidos/Novo Pedido, relatórios de pedidos/produtos/vendas, metas, tabela de preços, cobertura e configurações administrativas conforme o perfil. Sem pedidos enviados pelo formulário ou integrações externas.
+- Observação existente preservada: o card “Pedidos” usa a soma monetária de `invoices` e a formata como número. Esse comportamento não foi alterado pelo seed; não representa a contagem de 109 pedidos. Os contadores do seed são independentes dessa apresentação.
