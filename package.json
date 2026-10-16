@@ -19,7 +19,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "start:homologacao": "node scripts/start-homologacao.cjs",
-    "seed:homologacao": "node scripts/seed-homologacao.cjs"
+    "seed:homologacao": "node scripts/seed-homologacao.cjs",
+    "test:seed:homologacao": "node --test tests/seed-homologacao.test.cjs",
+    "validate:homologacao": "node scripts/validate-homologacao.cjs"
   },
   "dependencies": {
     "@nestjs/common": "10.0.0",
