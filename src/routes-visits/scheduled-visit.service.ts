@@ -1,11 +1,21 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CompaniesService } from 'src/companies/companies.service';
 import { BaseCrudService, Paginated } from './base-crud.service';
 import {
   ScheduledVisit,
   ScheduledVisitStatus,
 } from './entities/scheduled-visit.entity';
-import { UpdateScheduledVisitDto } from './dtos/scheduled-visit.dto';
+import {
+  CreateScheduledVisitDto,
+  UpdateScheduledVisitDto,
+} from './dtos/scheduled-visit.dto';
+import { UserCompany } from 'src/user-companies/user-company.entity';
+import { UserCompanyStatus } from 'src/user-companies/enums/user-company-status.enum';
+import {
+  getRolesAccessibleByRole,
+  UserRole,
+} from 'src/users/enums/user-role.enum';
+import { UserStatus } from 'src/users/enums/user-status.enum';
 import { Op } from 'sequelize';
 import { Customer } from 'src/presentation/customers/customer.entity';
 import { User } from 'src/users/user.entity';
@@ -21,6 +31,70 @@ export class ScheduledVisitService extends BaseCrudService<ScheduledVisit> {
     companiesService: CompaniesService,
   ) {
     super(repository, companiesService);
+  }
+
+  async create(
+    companyId: number,
+    dto: CreateScheduledVisitDto,
+  ): Promise<ScheduledVisit> {
+    await this.assertCompanyExists(companyId);
+    const customer = await Customer.findOne({
+      where: { id: dto.customerId, companyId },
+    });
+    const responsible = await UserCompany.findOne({
+      include: [
+        {
+          model: User,
+          required: true,
+          attributes: ['id'],
+          where: { status: UserStatus.Active },
+        },
+      ],
+      where: {
+        userId: dto.userId,
+        companyId,
+        status: UserCompanyStatus.ACTIVE,
+        role: { [Op.in]: getRolesAccessibleByRole(UserRole.SalesRep) },
+      },
+    });
+    if (!customer || !responsible) {
+      throw new BadRequestException(
+        'Cliente e responsável devem pertencer à empresa e o responsável deve estar ativo',
+      );
+    }
+    return this.repository.create({
+      companyId,
+      customerId: dto.customerId,
+      userId: dto.userId,
+      scheduledDate: dto.scheduledDate,
+      scheduledTime: dto.scheduledTime,
+      notes: dto.notes,
+      status: ScheduledVisitStatus.PENDING,
+    });
+  }
+
+  async findMyDay(
+    companyId: number,
+    userId: number,
+    date: string,
+  ): Promise<Paginated<ScheduledVisit>> {
+    await this.assertCompanyExists(companyId);
+    const data = await this.repository.findAll({
+      where: {
+        companyId,
+        userId,
+        scheduledDate: date,
+        status: ScheduledVisitStatus.PENDING,
+      },
+      include: [
+        { model: Customer, attributes: ['id', 'fantasyName', 'corporateName'] },
+      ],
+      order: [
+        ['scheduledTime', 'ASC'],
+        ['id', 'ASC'],
+      ],
+    });
+    return { data, metadata: { total: data.length } };
   }
 
   async findAll(companyId: number): Promise<Paginated<ScheduledVisit>> {

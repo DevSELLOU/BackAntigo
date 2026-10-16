@@ -63,6 +63,28 @@ async function main() {
     await ensure('ProductSubCategories',{productId:product.id,subCategoryId:subCategory.id},{productId:product.id,subCategoryId:subCategory.id});
     const priceTable = await ensure('PriceTables',scoped('Tabela Ficticia Homologacao'),{...scoped('Tabela Ficticia Homologacao'),description:'Precos de teste',price:0,status:'ACTIVE'});
     await ensure('PriceTableItems',{priceTableId:priceTable.id,productId:product.id},{priceTableId:priceTable.id,productId:product.id,manualPrice:100,isManual:true});
+    // Stable scoped identities keep repeat runs additive and preserve existing records.
+    for (let index = 2; index <= 11; index++) {
+      const code = String(index).padStart(3, '0');
+      const extraCustomer = await ensure('Customers', {email:`cliente-${code}@sellou-homologacao.example`,companyId:company.id}, {
+        corporateName:`Cliente Ficticio Homologacao ${code}`,fantasyName:`Cliente Ficticio ${code}`,
+        document:`00000000000${code}`,email:`cliente-${code}@sellou-homologacao.example`,phoneNumber:'00000000000',
+        cep:'00000000',address:`Rua Ficticia ${code}`,city:'Cidade Ficticia',UF:'SP',neighborhood:'Bairro Ficticio',
+        creditLimit:10000,creditLimitUsed:0,status:'ACTIVE',customerType:'END_CONSUMER',taxRegime:'SIMPLES_NACIONAL',
+        subSegmentId:subSegment.id,companyId:company.id,
+      });
+      await ensure('CustomerPaymentConditions',{customerId:extraCustomer.id,paymentConditionId:condition.id},{customerId:extraCustomer.id,paymentConditionId:condition.id});
+      await ensure('CustomerPaymentMethods',{customerId:extraCustomer.id,paymentMethodId:method.id},{customerId:extraCustomer.id,paymentMethodId:method.id});
+      await ensure('customer_sellers',{customerId:extraCustomer.id,userId:user.id},{customerId:extraCustomer.id,userId:user.id});
+      const extraProduct = await ensure('Products',{reference:`DEV-PROD-${code}`,companyId:company.id},{
+        name:`Produto Ficticio Homologacao ${code}`,description:'Produto ficticio sem integracao externa',
+        reference:`DEV-PROD-${code}`,price:100,minPrice:100,stock:100,unitOfMeasure:'UN',brand:'Marca Ficticia',
+        active:true,favorite:false,companyId:company.id,
+      });
+      await ensure('StockMovements',{productId:extraProduct.id,type:'IN',orderId:null},{productId:extraProduct.id,type:'IN',orderId:null,quantity:100});
+      await ensure('ProductSubCategories',{productId:extraProduct.id,subCategoryId:subCategory.id},{productId:extraProduct.id,subCategoryId:subCategory.id});
+      await ensure('PriceTableItems',{priceTableId:priceTable.id,productId:extraProduct.id},{priceTableId:priceTable.id,productId:extraProduct.id,manualPrice:100,isManual:true});
+    }
     const order = await ensure('Orders',{purchaseOrderNumber:'DEV-ORC-001',companyId:company.id},{purchaseOrderNumber:'DEV-ORC-001',observation:'Orcamento ficticio; sem faturamento ou envio',companyId:company.id,customerId:customer.id,responsibleUserId:user.id,paymentConditionId:condition.id,paymentMethodId:method.id,status:'ON_BUDGET',totalValue:200,amountPaid:0,discount:0,isCustomerClientOrder:false});
     await ensure('OrderItems',{orderId:order.id,productId:product.id},{orderId:order.id,productId:product.id,quantity:2,discount:0});
     await ensure('order_responsible_users',{orderId:order.id,userId:user.id},{orderId:order.id,userId:user.id});
