@@ -51,6 +51,10 @@ export class ScheduledVisit extends Model {
   @Column({ type: DataType.DATEONLY, allowNull: false })
   scheduledDate: string;
 
+  // Local wall-clock time, paired with DATEONLY; legacy visits may have no time.
+  @Column({ type: DataType.TIME, allowNull: true })
+  scheduledTime: string;
+
   @Column({
     type: DataType.ENUM(...Object.values(ScheduledVisitStatus)),
     defaultValue: ScheduledVisitStatus.PENDING,

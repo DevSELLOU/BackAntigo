@@ -9,7 +9,9 @@ import {
   Post,
   Patch,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { CompanyOwnershipGuard } from 'src/auth/guards/company-ownership.guard';
 import { AuthAdministrator } from 'src/auth/decorators/authenticated-user.decorator';
 import { AuthenticatedUserDto } from 'src/auth/dtos/authenticated-user.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -24,11 +26,12 @@ import { CreateTripDto } from './dtos/create-trip.dto';
 import { CheckInDto } from './dtos/check-in.dto';
 import { CompleteTripDto } from './dtos/complete-trip.dto';
 import { SkipCustomerDto } from './dtos/skip-customer.dto';
-import { UpdateScheduledVisitDto } from './dtos/scheduled-visit.dto';
+import { CreateScheduledVisitDto, ScheduledVisitDayQuery, UpdateScheduledVisitDto } from './dtos/scheduled-visit.dto';
 import { ScheduledVisitService } from './scheduled-visit.service';
 import { logger } from 'src/utils/logger';
 
 @Controller('company/:companyId/routes-visits')
+@UseGuards(CompanyOwnershipGuard)
 export class RoutesVisitsController {
   constructor(
     @Inject(RouteService)
@@ -246,6 +249,27 @@ export class RoutesVisitsController {
   }
 
   /* ─── scheduled visits ─── */
+
+  @Roles(...getRolesAccessibleByRole(UserRole.SalesRep))
+  @Post('scheduled-visits')
+  async createScheduledVisit(
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Body() dto: CreateScheduledVisitDto,
+  ) {
+    const data = await this.scheduledVisitService.create(companyId, dto);
+    return { message: 'Visita programada criada', data };
+  }
+
+  @Roles(...getRolesAccessibleByRole(UserRole.SalesRep))
+  @Get('scheduled-visits/my/day')
+  async findMyDay(
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Query() query: ScheduledVisitDayQuery,
+    @AuthAdministrator() user: AuthenticatedUserDto,
+  ) {
+    const result = await this.scheduledVisitService.findMyDay(companyId, user.id, query.date);
+    return { message: 'Compromissos do dia', ...result };
+  }
 
   @Get('scheduled-visits')
   async findScheduledVisits(

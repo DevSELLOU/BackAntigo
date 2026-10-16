@@ -1,3 +1,4 @@
+import { UserCompany } from '../../src/user-companies/user-company.entity';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ScheduledVisitService } from '../../src/routes-visits/scheduled-visit.service';
 import { CompaniesService } from '../../src/companies/companies.service';
@@ -46,7 +47,35 @@ describe('ScheduledVisitService', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+  });
+
+  describe('standalone creation and daily agenda', () => {
+    const dto = { customerId: 10, userId: 2, scheduledDate: '2026-10-16', scheduledTime: '09:30', notes: 'Ficticia' };
+    it('creates a pending visit without a route and scopes both relationships', async () => {
+      const customer = jest.spyOn(Customer, 'findOne').mockResolvedValue({id: 10} as any);
+      const member = jest.spyOn(UserCompany, 'findOne').mockResolvedValue({userId: 2} as any);
+      repository.create.mockResolvedValue(dto);
+      await service.create(1, dto);
+      expect(customer).toHaveBeenCalledWith({where: {id: 10, companyId: 1}});
+      expect(member).toHaveBeenCalledWith(expect.objectContaining({where: expect.objectContaining({userId: 2, companyId: 1, status: 'ACTIVE'})}));
+      expect(repository.create).toHaveBeenCalledWith({...dto, companyId: 1, status: 'PENDING'});
+    });
+    it.each(['customer', 'responsible'])('rejects a missing/foreign/inactive %s without writing', async missing => {
+      jest.spyOn(Customer, 'findOne').mockResolvedValue(missing === 'customer' ? null : {} as any);
+      jest.spyOn(UserCompany, 'findOne').mockResolvedValue(missing === 'responsible' ? null : {} as any);
+      await expect(service.create(1, dto)).rejects.toThrow();
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+    it('queries exactly the requested local date, company, authenticated user and pending status', async () => {
+      repository.findAll.mockResolvedValue([]);
+      expect(await service.findMyDay(7, 23, '2026-10-16')).toEqual({data: [], metadata: {total: 0}});
+      expect(repository.findAll).toHaveBeenCalledWith(expect.objectContaining({
+        where: {companyId: 7, userId: 23, scheduledDate: '2026-10-16', status: 'PENDING'},
+        order: [['scheduledTime', 'ASC'], ['id', 'ASC']],
+      }));
+    });
   });
 
   /* ─── findAll ─── */
