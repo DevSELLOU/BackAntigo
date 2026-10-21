@@ -24,12 +24,13 @@ async function main() {
     await client.query('BEGIN');
     await client.query("SELECT pg_advisory_xact_lock(hashtext('sellou-homologacao-seed-v1'))");
     const created = {};
-    async function ensure(table, key, data) {
+    async function ensure(table, key, data, comparisonFields = Object.keys(data)) {
       const where = Object.keys(key).map((k,i)=>`${quote(k)} IS NOT DISTINCT FROM $${i+1}`).join(' AND ');
       const existing = (await client.query(`SELECT * FROM ${quote(table)} WHERE ${where}`,Object.values(key))).rows;
       if (existing.length > 1) throw new Error('Ambiguous seed identity: ' + table);
       if (existing.length) {
         for (const [k,v] of Object.entries(data)) {
+          if (!comparisonFields.includes(k)) continue;
           if (k === 'password') { if (!await bcrypt.compare(PASSWORD,existing[0][k])) throw new Error('Existing seed password differs; no reset performed'); }
           else if (typeof v === 'number') { if (existing[0][k] === null || Number(existing[0][k]) !== v) throw new Error(`Existing ${table}.${k} differs; refusing overwrite`); }
           else if (v !== null && typeof v !== 'object' && String(existing[0][k]) !== String(v)) throw new Error(`Existing ${table}.${k} differs; refusing overwrite`);
@@ -42,8 +43,11 @@ async function main() {
       created[table] = (created[table] || 0) + 1;
       return result.rows[0];
     }
-    if ((await client.query('SELECT 1 FROM \"Companies\" WHERE \"cnpj\" <> $1 OR \"corporateName\" <> $2 LIMIT 1', ['00000000000000', COMPANY])).rowCount) throw new Error('Non-seed company exists; refusing to seed a non-dedicated database');
-    const company = await ensure('Companies',{cnpj:'00000000000000'},{corporateName:COMPANY,fantasyName:'sellou-homologacao',cnpj:'00000000000000',status:'ACTIVE',about:'Empresa ficticia exclusiva para homologacao',customColor:'#2563eb',allowOrdersWithoutStock:false});
+    if ((await client.query('SELECT 1 FROM \"Companies\" WHERE \"cnpj\" IS DISTINCT FROM $1 OR \"corporateName\" IS DISTINCT FROM $2 LIMIT 1', ['00000000000000', COMPANY])).rowCount) throw new Error('Non-seed company exists; refusing to seed a non-dedicated database');
+    // These are insert defaults only. For an existing fictional company, validate
+    // only its critical identity and preserve every manually configured field.
+    // All other tables retain their strict comparison and relationship checks.
+    const company = await ensure('Companies',{cnpj:'00000000000000'},{corporateName:COMPANY,fantasyName:'sellou-homologacao',cnpj:'00000000000000',status:'ACTIVE',about:'Empresa ficticia exclusiva para homologacao',customColor:'#2563eb',allowOrdersWithoutStock:false}, ['cnpj', 'corporateName']);
     const user = await ensure('Users',{email:EMAIL},{name:'Administrador Ficticio Homologacao',email:EMAIL,password:await bcrypt.hash(PASSWORD,10),role:'ADMINISTRATOR',status:'ACTIVE',position:'Administrador de homologacao',companyId:company.id,standardCommissionPercentage:0});
     await ensure('UserCompanies',{userId:user.id,companyId:company.id},{userId:user.id,companyId:company.id,role:'ADMINISTRATOR',status:'ACTIVE',position:'Administrador de homologacao'});
     const scoped = (name) => ({name,companyId:company.id});
